@@ -1,0 +1,123 @@
+/* app/globals.css */
+/* Design Tokens — CheatSheet */
+/* 다크 배경 + 네온 액센트 + Noto Serif KR + DM Mono */
+
+@import url("https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&family=DM+Mono:wght@400;500&display=swap");
+@import "tailwindcss";
+
+:root {
+  /* ── Color Tokens ─────────────────────────── */
+  --bg-base: #0d0d0d;
+  --bg-surface: #141414;
+  --bg-elevated: #1a1a1a;
+  --border: #2a2a2a;
+
+  --accent: #c8ff00;
+  --accent-dim: rgba(200, 255, 0, 0.12);
+  --accent-glow: rgba(200, 255, 0, 0.35);
+
+  --text-primary: #f0f0f0;
+  --text-secondary: #888888;
+  --text-muted: #444444;
+
+  --success: #00ff88;
+  --warning: #ffaa00;
+  --danger: #ff4444;
+
+  /* ── Typography ───────────────────────────── */
+  --font-serif: "Noto Serif KR", Georgia, serif;
+  --font-mono: "DM Mono", "Courier New", monospace;
+
+  /* ── Spacing ──────────────────────────────── */
+  --radius: 6px;
+  --radius-lg: 12px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-serif);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Grid Pattern Background ──────────────────────────────── */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: linear-gradient(
+      rgba(200, 255, 0, 0.03) 1px,
+      transparent 1px
+    ),
+    linear-gradient(90deg, rgba(200, 255, 0, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Top Color Line ───────────────────────────────────────── */
+body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent);
+  z-index: 100;
+}
+
+/* ── Scrollbar ────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-base);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+/* ── Utility Classes ──────────────────────────────────────── */
+.mono {
+  font-family: var(--font-mono);
+}
+
+.accent {
+  color: var(--accent);
+}
+
+/* ── Animations ───────────────────────────────────────────── */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes unlockPulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--accent-glow); }
+  50% { box-shadow: 0 0 20px 6px var(--accent-glow); }
+}
+
+.fade-up {
+  animation: fadeUp 0.4s ease forwards;
+}
+
+.unlock-pulse {
+  animation: unlockPulse 0.6s ease;
+}

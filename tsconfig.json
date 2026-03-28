@@ -1,0 +1,73 @@
+// types/index.ts
+// Firestore 스키마 타입 정의 — Sprint 1 최종 확정안
+
+// ─────────────────────────────────────────────
+// Collection: cheatcodes/{docId}
+// ─────────────────────────────────────────────
+export interface CheatCode {
+  id: string;
+  figure: string;           // "Ray Dalio"
+  tags: string[];           // ["두려움", "실패", "멘탈 붕괴"]
+  rawQuote: string;         // 원문 그대로 — AI 해석 금지
+  sourceUrl: string;        // YouTube or 원문 URL
+  actionItems: string[];    // ["손실 원인 3가지 지금 당장 적기"]
+  references: string[];     // ["Principles - Ray Dalio"]
+  createdAt: Date;
+}
+
+// ─────────────────────────────────────────────
+// Collection: tags/{docId}  (글로벌 기본 태그)
+// Subcollection: users/{uid}/customTags/{docId}  (유저 커스텀)
+// ─────────────────────────────────────────────
+export interface Tag {
+  id: string;
+  label: string;            // "두려움"
+  emoji: string;            // "😨"
+  isDefault: boolean;       // 시스템 기본값 여부
+  createdAt: Date;
+}
+
+// ─────────────────────────────────────────────
+// Collection: users/{uid}
+// ─────────────────────────────────────────────
+export interface Gamification {
+  totalCompleted: number;   // 누적 완료 action item 수
+  currentStreak: number;    // 연속 달성일
+  level: number;            // 레벨 (totalCompleted 기반)
+  lastActiveAt: Date;
+}
+
+export interface User {
+  uid: string;
+  displayName: string;
+  email: string;
+  googleCalendarConnected: boolean;
+  googleDocsLogId: string;  // 로깅 대상 Google Docs ID
+  gamification: Gamification;
+  createdAt: Date;
+}
+
+// ─────────────────────────────────────────────
+// Subcollection: users/{uid}/sessions/{sessionId}
+// ─────────────────────────────────────────────
+export interface Session {
+  id: string;
+  triggeredAt: Date;
+  selectedTags: string[];         // 사용자가 선택한 태그 label[]
+  cheatcodeId: string;            // 매핑된 cheatcode 참조
+  actionItems: string[];          // 세션 시점 스냅샷
+  deadline: Date | null;
+  calendarEventId: string | null;
+  completedItems: string[];       // 완료된 action item[]
+}
+
+// ─────────────────────────────────────────────
+// Level 산출 헬퍼 (순수 함수 — 서버/클라 공용)
+// ─────────────────────────────────────────────
+export function calcLevel(totalCompleted: number): number {
+  if (totalCompleted < 5) return 1;
+  if (totalCompleted < 15) return 2;
+  if (totalCompleted < 30) return 3;
+  if (totalCompleted < 60) return 4;
+  return 5;
+}

@@ -1,0 +1,46 @@
+// lib/googleCalendar.ts
+// Google Calendar API — Custom Code (노코드 툴 미사용, Anti-Pattern #3 준수)
+// 서버사이드 API Route에서만 호출
+
+import { google } from "googleapis";
+
+interface InsertEventParams {
+  accessToken: string;
+  title: string;
+  description: string;
+  deadline: Date;
+}
+
+export async function insertCalendarEvent({
+  accessToken,
+  title,
+  description,
+  deadline,
+}: InsertEventParams): Promise<string> {
+  const auth = new google.auth.OAuth2(
+    process.env.AUTH_GOOGLE_ID,
+    process.env.AUTH_GOOGLE_SECRET
+  );
+  auth.setCredentials({ access_token: accessToken });
+
+  const calendar = google.calendar({ version: "v3", auth });
+
+  const event = await calendar.events.insert({
+    calendarId: "primary",
+    requestBody: {
+      summary: `[CheatSheet] ${title}`,
+      description,
+      start: {
+        dateTime: deadline.toISOString(),
+        timeZone: "Asia/Seoul",
+      },
+      end: {
+        // 기본 1시간 블로킹
+        dateTime: new Date(deadline.getTime() + 60 * 60 * 1000).toISOString(),
+        timeZone: "Asia/Seoul",
+      },
+    },
+  });
+
+  return event.data.id!;
+}

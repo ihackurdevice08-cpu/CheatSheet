@@ -1,0 +1,60 @@
+// lib/googleDocs.ts
+// Google Docs API — 달성 기록 자동 로깅 (NotebookLM 소스 파이프라인)
+// 서버사이드 API Route에서만 호출
+
+import { google } from "googleapis";
+
+interface LogEntryParams {
+  accessToken: string;
+  docId: string;
+  figure: string;
+  tags: string[];
+  completedItems: string[];
+  insight?: string;
+}
+
+export async function appendLogEntry({
+  accessToken,
+  docId,
+  figure,
+  tags,
+  completedItems,
+  insight,
+}: LogEntryParams): Promise<void> {
+  const auth = new google.auth.OAuth2(
+    process.env.AUTH_GOOGLE_ID,
+    process.env.AUTH_GOOGLE_SECRET
+  );
+  auth.setCredentials({ access_token: accessToken });
+
+  const docs = google.docs({ version: "v1", auth });
+
+  const now = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
+
+  const logText = [
+    `\n────────────────────────────────`,
+    `📅 ${now}`,
+    `👤 ${figure}`,
+    `🏷️  상황 태그: ${tags.join(", ")}`,
+    `✅ 완료 실천 과제:`,
+    ...completedItems.map((item) => `   • ${item}`),
+    insight ? `💡 인사이트: ${insight}` : null,
+    `────────────────────────────────`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  await docs.documents.batchUpdate({
+    documentId: docId,
+    requestBody: {
+      requests: [
+        {
+          insertText: {
+            location: { index: 1 }, // 문서 맨 앞에 최신 로그 삽입
+            text: logText,
+          },
+        },
+      ],
+    },
+  });
+}
