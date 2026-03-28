@@ -1,17 +1,25 @@
 "use client";
 
 // components/CheatCodeCard.tsx
-// 위인의 Raw Data를 강렬하게 렌더링하는 카드
-// Action Items는 UI만 — 체크박스/캘린더 연동은 Sprint 3
 
 import type { CheatCode } from "@/types";
+import ActionChecklist from "@/components/ActionChecklist";
 
 interface CheatCodeCardProps {
   data: CheatCode;
-  index?: number; // staggered fade-up용
+  index?: number;
+  uid: string;
+  sessionId: string;
+  completedItems?: string[];
 }
 
-export default function CheatCodeCard({ data, index = 0 }: CheatCodeCardProps) {
+export default function CheatCodeCard({
+  data,
+  index = 0,
+  uid,
+  sessionId,
+  completedItems = [],
+}: CheatCodeCardProps) {
   const delay = `${index * 0.08}s`;
 
   return (
@@ -19,7 +27,7 @@ export default function CheatCodeCard({ data, index = 0 }: CheatCodeCardProps) {
       className="fade-up"
       style={{ ...styles.card, animationDelay: delay }}
     >
-      {/* 상단 바 — figure + 출처 버튼 */}
+      {/* Header */}
       <div style={styles.cardHeader}>
         <div style={styles.figureBlock}>
           <span className="mono" style={styles.figureLabel}>FIGURE</span>
@@ -33,23 +41,23 @@ export default function CheatCodeCard({ data, index = 0 }: CheatCodeCardProps) {
             rel="noopener noreferrer"
             style={styles.sourceBtn}
           >
-            <span style={styles.sourceBtnIcon}>▶</span>
+            <span style={styles.sourceBtnIcon}>&#9654;</span>
             <span className="mono" style={styles.sourceBtnText}>SOURCE</span>
           </a>
         )}
       </div>
 
-      {/* 구분선 */}
+      {/* Accent line */}
       <div style={styles.accentLine} />
 
-      {/* Raw Quote — 가장 눈에 띄는 타이포그래피 */}
+      {/* Raw Quote */}
       <blockquote style={styles.quoteBlock}>
-        <span style={styles.quoteDecor}>"</span>
+        <span style={styles.quoteDecor}>&ldquo;</span>
         <p style={styles.quoteText}>{data.rawQuote}</p>
-        <span style={{ ...styles.quoteDecor, ...styles.quoteDecorClose }}>"</span>
+        <span style={{ ...styles.quoteDecor, ...styles.quoteDecorClose }}>&rdquo;</span>
       </blockquote>
 
-      {/* 태그 */}
+      {/* Tags */}
       <div style={styles.tagRow}>
         {data.tags.map((tag) => (
           <span key={tag} className="mono" style={styles.tagBadge}>
@@ -58,21 +66,15 @@ export default function CheatCodeCard({ data, index = 0 }: CheatCodeCardProps) {
         ))}
       </div>
 
-      {/* Action Items */}
+      {/* Action Items — Sprint 3: ActionChecklist */}
       {data.actionItems.length > 0 && (
         <div style={styles.actionSection}>
-          <p className="mono" style={styles.actionLabel}>ACTION ITEMS</p>
-          <ul style={styles.actionList}>
-            {data.actionItems.map((item, i) => (
-              <li key={i} style={styles.actionItem}>
-                {/* Sprint 3: 여기에 체크박스 + 캘린더 연동 */}
-                <span style={styles.actionBullet} className="mono">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <span style={styles.actionText}>{item}</span>
-              </li>
-            ))}
-          </ul>
+          <ActionChecklist
+            uid={uid}
+            sessionId={sessionId}
+            items={data.actionItems}
+            initialCompleted={completedItems}
+          />
         </div>
       )}
     </article>
@@ -83,6 +85,7 @@ const styles: Record<string, React.CSSProperties> = {
   card: {
     background: "var(--bg-surface)",
     border: "1px solid var(--border)",
+    borderLeft: "3px solid var(--accent)",
     borderRadius: "var(--radius-lg)",
     padding: "1.75rem",
     display: "flex",
@@ -90,8 +93,6 @@ const styles: Record<string, React.CSSProperties> = {
     gap: "1.25rem",
     position: "relative",
     overflow: "hidden",
-    // 왼쪽 네온 보더 포인트
-    borderLeft: "3px solid var(--accent)",
   },
   cardHeader: {
     display: "flex",
@@ -126,7 +127,6 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "0.4rem 0.75rem",
     textDecoration: "none",
     color: "var(--text-secondary)",
-    transition: "border-color 0.15s, color 0.15s",
     flexShrink: 0,
   },
   sourceBtnIcon: {
@@ -139,7 +139,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   accentLine: {
     height: "1px",
-    background: `linear-gradient(90deg, var(--accent) 0%, transparent 100%)`,
+    background: "linear-gradient(90deg, var(--accent) 0%, transparent 100%)",
     opacity: 0.3,
   },
   quoteBlock: {
@@ -190,38 +190,5 @@ const styles: Record<string, React.CSSProperties> = {
     background: "var(--bg-elevated)",
     borderRadius: "var(--radius)",
     padding: "1rem 1.25rem",
-    display: "flex",
-    flexDirection: "column",
-    gap: "0.75rem",
-  },
-  actionLabel: {
-    fontSize: "0.6rem",
-    letterSpacing: "0.22em",
-    color: "var(--accent)",
-  },
-  actionList: {
-    listStyle: "none",
-    display: "flex",
-    flexDirection: "column",
-    gap: "0.6rem",
-  },
-  actionItem: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: "0.75rem",
-  },
-  actionBullet: {
-    fontSize: "0.65rem",
-    color: "var(--accent)",
-    letterSpacing: "0.05em",
-    flexShrink: 0,
-    paddingTop: "0.15rem",
-  },
-  actionText: {
-    fontFamily: "var(--font-serif)",
-    fontSize: "0.88rem",
-    color: "var(--text-primary)",
-    lineHeight: 1.6,
-    // Sprint 3: opacity 낮춤 → 완료 시 strike-through + opacity 1
   },
 };

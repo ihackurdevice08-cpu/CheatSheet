@@ -1,0 +1,161 @@
+// lib/firestore.ts
+// Firestore CRUD 헬퍼 — 클라이언트 사이드
+
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  arrayUnion,
+  serverTimestamp,
+  Timestamp,
+} from "firebase/firestore";
+import { db } from "./firebase";
+import type { CheatCode, User, Session, Tag, Gamification } from "@/types";
+import { calcLevel } from "@/types";
+
+// ── CheatCodes ──────────────────────────────────────────────
+
+export async function getCheatCodesByTags(tags: string[]): Promise<CheatCode[]> {
+  const q = query(
+    collection(db, "cheatcodes"),
+    where("tags", "array-contains-any", tags)
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as CheatCode));
+}
+
+export async function getAllCheatCodes(): Promise<CheatCode[]> {
+  const snap = await getDocs(collection(db, "cheatcodes"));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as CheatCode));
+}
+
+export async function addCheatCode(data: Omit<CheatCode, "id" | "createdAt">) {
+  return addDoc(collection(db, "cheatcodes"), {
+    ...data,
+    createdAt: serverTimestamp(),
+  });
+}
+
+// ── Tags ────────────────────────────────────────────────────
+
+export async function getGlobalTags(): Promise<Tag[]> {
+  const snap = await getDocs(collection(db, "tags"));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Tag));
+}
+
+export async function getUserCustomTags(uid: string): Promise<Tag[]> {
+  const snap = await getDocs(
+    collection(db, "users", uid, "customTags")
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Tag));
+}
+
+export async function addUserCustomTag(
+  uid: string,
+  tag: Omit<Tag, "id" | "createdAt" | "isDefault">
+) {
+  return addDoc(collection(db, "users", uid, "customTags"), {
+    ...tag,
+    isDefault: false,
+    createdAt: serverTimestamp(),
+  });
+}
+
+export async function deleteUserCustomTag(uid: string, tagId: string) {
+  return deleteDoc(doc(db, "users", uid, "customTags", tagId));
+}
+
+// ── User ────────────────────────────────────────────────────
+
+export async function getUser(uid: string): Promise<User | null> {
+  const snap = await getDoc(doc(db, "users", uid));
+  if (!snap.exists()) return null;
+  return { uid: snap.id, ...snap.data() } as User;
+}
+
+export async function upsertUser(uid: string, data: Partial<User>) {
+  const ref = doc(db, "users", uid);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) {
+    // 최초 생성 시 gamification 초기값 포함
+    await setDoc(ref, {
+      ...data,
+      gamification: {
+        totalCompleted: 0,
+        currentStreak: 0,
+        level: 1,
+        lastActiveAt: serverTimestamp(),
+      },
+      createdAt: serverTimestamp(),
+    });
+  } else {
+    await updateDoc(ref, data);
+  }
+}
+
+// ── Gamification ────────────────────────────────────────────
+
+export async function incrementCompleted(uid: string) {
+  const ref = doc(db, "users", uid);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+
+  const g: Gamification = snap.data().gamification;
+  const newTotal = g.totalCompleted + 1;
+
+  await updateDoc(ref, {
+    "gamification.totalCompleted": newTotal,
+    "gamification.level": calcLevel(newTotal),
+    "gamification.lastActiveAt": serverTimestamp(),
+  });
+}
+
+// ── Sessions ────────────────────────────────────────────────
+
+export async function createSession(
+  uid: string,
+  data: Omit<Session, "id" | "triggeredAt" | "completedItems">
+): Promise<string> {
+  const ref = await addDoc(collection(db, "users", uid, "sessions"), {
+    ...data,
+    completedItems: [],
+    triggeredAt: serverTimestamp(),
+  });
+  return ref.id;
+}
+
+export async function completeActionItem(
+  uid: string,
+  sessionId: string,
+  item: string
+) {
+  const ref = doc(db, "users", uid, "sessions", sessionId);
+  await updateDoc(ref, {
+    completedItems: arrayUnion(item),
+  });
+  await incrementCompleted(uid);
+}
+
+export async function getUserSessions(uid: string): Promise<Session[]> {
+  const snap = await getDocs(
+    collection(db, "users", uid, "sessions")
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Session));
+}
+
+// ── Calendar Event ID 저장 ───────────────────────────────────
+export async function saveCalendarEventId(
+  uid: string,
+  sessionId: string,
+  eventId: string
+) {
+  const ref = doc(db, "users", uid, "sessions", sessionId);
+  await updateDoc(ref, { calendarEventId: eventId });
+}

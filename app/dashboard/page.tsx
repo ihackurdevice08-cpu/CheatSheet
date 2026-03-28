@@ -11,6 +11,7 @@ import {
   getGlobalTags,
   getUserCustomTags,
   getCheatCodesByTags,
+  createSession,
 } from "@/lib/firestore";
 import { useProgress } from "@/hooks/useProgress";
 import CheatCodeCard from "@/components/CheatCodeCard";
@@ -25,6 +26,7 @@ export default function DashboardPage() {
   const [tags, setTags] = useState<Tag[]>([]);
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [cards, setCards] = useState<CheatCode[]>([]);
+  const [sessionIds, setSessionIds] = useState<Record<string, string>>({});
   const [loadState, setLoadState] = useState<LoadState>("idle");
   const [tagsReady, setTagsReady] = useState(false);
 
@@ -57,10 +59,27 @@ export default function DashboardPage() {
       const results = await getCheatCodesByTags([label]);
       setCards(results);
       setLoadState(results.length > 0 ? "done" : "empty");
+      // 각 CheatCode에 대해 세션 생성 (Action Tracking용)
+      if (uid && results.length > 0) {
+        const sids: Record<string, string> = {};
+        await Promise.all(
+          results.map(async (card) => {
+            const sid = await createSession(uid, {
+              selectedTags: [label],
+              cheatcodeId: card.id,
+              actionItems: card.actionItems,
+              deadline: null,
+              calendarEventId: null,
+            });
+            sids[card.id] = sid;
+          })
+        );
+        setSessionIds(sids);
+      }
     } catch {
       setLoadState("empty");
     }
-  }, [activeTag]);
+  }, [activeTag, uid]);
 
   if (status === "loading" || !tagsReady) return <LoadingScreen />;
 
@@ -152,7 +171,7 @@ export default function DashboardPage() {
               </div>
               <div style={styles.cardGrid}>
                 {cards.map((card, i) => (
-                  <CheatCodeCard key={card.id} data={card} index={i} />
+                  <CheatCodeCard key={card.id} data={card} index={i} uid={uid ?? ""} sessionId={sessionIds[card.id] ?? ""} />
                 ))}
               </div>
             </>
